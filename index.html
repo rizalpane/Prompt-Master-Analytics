@@ -1,278 +1,335 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  CheckCircle, 
-  AlertCircle, 
-  Info, 
-  Lightbulb, 
-  Award, 
-  Terminal, 
-  Layout, 
-  UserCircle, 
-  FileText,
-  ChevronRight,
-  RefreshCw,
-  Copy,
-  Check
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptMaster Analytics - Deteksi Kualitas Prompt</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus+Jakarta+Sans', sans-serif;
+            background-color: #f8fafc;
+        }
 
-const App = () => {
-  const [prompt, setPrompt] = useState('');
-  const [analysis, setAnalysis] = useState(null);
-  const [copied, setCopied] = useState(false);
+        .grade-s { color: #8b5cf6; text-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+        .grade-a { color: #10b981; }
+        .grade-b { color: #3b82f6; }
+        .grade-c { color: #f59e0b; }
+        .grade-d { color: #f97316; }
+        .grade-f { color: #ef4444; }
 
-  const criteria = [
-    { 
-      id: 'persona', 
-      label: 'Persona/Role', 
-      desc: 'Apakah Anda memberikan identitas pada AI? (Contoh: "Bertindaklah sebagai pakar SEO")',
-      keywords: ['sebagai', 'pakar', 'ahli', 'role', 'bertindak', 'peran', 'as a', 'expert', 'specialist']
-    },
-    { 
-      id: 'task', 
-      label: 'Tujuan/Tugas', 
-      desc: 'Apakah tugas utamanya jelas? (Contoh: "Buatlah artikel", "Ringkas teks")',
-      keywords: ['buat', 'tulis', 'ringkas', 'analisis', 'hitung', 'jelaskan', 'create', 'write', 'summarize', 'analyze']
-    },
-    { 
-      id: 'context', 
-      label: 'Konteks', 
-      desc: 'Apakah ada latar belakang informasi? (Contoh: "Untuk audiens pemula", "Dalam industri medis")',
-      keywords: ['untuk', 'latar belakang', 'konteks', 'situasi', 'audiens', 'target', 'context', 'background', 'audience']
-    },
-    { 
-      id: 'format', 
-      label: 'Format Output', 
-      desc: 'Apakah format akhirnya ditentukan? (Contoh: "Gunakan tabel", "Dalam poin-poin", "Format Markdown")',
-      keywords: ['tabel', 'list', 'poin', 'bullet', 'format', 'markdown', 'html', 'json', 'table', 'structure']
-    },
-    { 
-      id: 'constraint', 
-      label: 'Batasan/Instruksi', 
-      desc: 'Apakah ada batasan jumlah kata atau gaya bahasa? (Contoh: "Maksimal 200 kata", "Gaya bahasa santai")',
-      keywords: ['jangan', 'hindari', 'maksimal', 'minimal', 'kata', 'gaya', 'nada', 'tone', 'avoid', 'limit']
-    }
-  ];
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 1);
+        }
 
-  const analyzePrompt = (text) => {
-    if (!text.trim()) {
-      setAnalysis(null);
-      return;
-    }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="text-slate-900">
 
-    const lowerText = text.toLowerCase();
-    const results = criteria.map(c => ({
-      ...c,
-      found: c.keywords.some(k => lowerText.includes(k.toLowerCase()))
-    }));
-
-    const foundCount = results.filter(r => r.found).length;
-    const wordCount = text.trim().split(/\s+/).length;
-    
-    // Scoring logic
-    let score = (foundCount / criteria.length) * 80;
-    if (wordCount > 20) score += 10;
-    if (wordCount > 50) score += 10;
-    if (wordCount < 5) score -= 20;
-
-    let grade = 'F';
-    let color = 'text-red-500';
-    if (score >= 90) { grade = 'S'; color = 'text-purple-500'; }
-    else if (score >= 80) { grade = 'A'; color = 'text-green-500'; }
-    else if (score >= 65) { grade = 'B'; color = 'text-blue-500'; }
-    else if (score >= 50) { grade = 'C'; color = 'text-yellow-500'; }
-    else if (score >= 35) { grade = 'D'; color = 'text-orange-500'; }
-
-    setAnalysis({
-      score: Math.max(0, Math.min(100, score)),
-      grade,
-      color,
-      details: results,
-      wordCount
-    });
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      analyzePrompt(prompt);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [prompt]);
-
-  const copyToClipboard = () => {
-    document.execCommand('copy'); // Fallback logic as requested
-    const textArea = document.createElement("textarea");
-    textArea.value = prompt;
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textArea);
-    
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const getSaran = () => {
-    if (!analysis) return [];
-    const missing = analysis.details.filter(d => !d.found);
-    return missing.map(m => `Tambahkan elemen **${m.label}**. ${m.desc.split('?')[1]}`);
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <header className="mb-8 text-center">
-          <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight mb-2 flex items-center justify-center gap-3">
-            <Terminal className="text-indigo-600" size={36} />
-            PromptMaster Analytics
-          </h1>
-          <p className="text-slate-600 max-w-2xl mx-auto">
-            Optimalkan interaksi Anda dengan AI (ChatGPT, Gemini, Claude) dengan menganalisis struktur prompt secara mendalam.
-          </p>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Main Input Section */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                  <FileText size={18} className="text-indigo-500" />
-                  Tulis atau Tempel Prompt Anda
-                </label>
-                <div className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                  {prompt.length} Karakter | {analysis?.wordCount || 0} Kata
+    <div class="min-h-screen p-4 md:p-8">
+        <div class="max-w-6xl mx-auto">
+            
+            <!-- Header -->
+            <header class="mb-10 text-center">
+                <div class="inline-flex items-center justify-center p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200 mb-4">
+                    <i class="fas fa-terminal text-white text-2xl"></i>
                 </div>
-              </div>
-              
-              <textarea
-                className="w-full h-64 p-4 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all resize-none text-slate-700 leading-relaxed"
-                placeholder="Contoh: Bertindaklah sebagai ahli nutrisi. Buatlah rencana makan harian untuk atlet lari maraton dalam bentuk tabel..."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-              />
+                <h1 class="text-4xl font-extrabold text-slate-800 tracking-tight mb-2">
+                    PromptMaster <span class="text-indigo-600">Analytics</span>
+                </h1>
+                <p class="text-slate-500 max-w-2xl mx-auto">
+                    Analisis dan tingkatkan kualitas perintah (prompt) Anda untuk hasil AI yang lebih akurat dan profesional.
+                </p>
+            </header>
 
-              <div className="mt-4 flex gap-3">
-                <button 
-                  onClick={copyToClipboard}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
-                >
-                  {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
-                  {copied ? 'Tersalin' : 'Salin Prompt'}
-                </button>
-                <button 
-                  onClick={() => setPrompt('')}
-                  className="flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-red-500 rounded-lg text-sm font-medium transition-colors"
-                >
-                  <RefreshCw size={16} />
-                  Reset
-                </button>
-              </div>
-            </div>
-
-            {/* Analysis Results */}
-            {analysis && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
-                  <span className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Grade Keseluruhan</span>
-                  <div className={`text-8xl font-black ${analysis.color} drop-shadow-sm`}>
-                    {analysis.grade}
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full mt-6 overflow-hidden">
-                    <div 
-                      className="bg-indigo-600 h-full transition-all duration-1000" 
-                      style={{ width: `${analysis.score}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-500 mt-2">Quality Score: {Math.round(analysis.score)}/100</span>
-                </div>
-
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                  <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <Lightbulb size={18} className="text-yellow-500" />
-                    Saran Perbaikan
-                  </h3>
-                  <div className="space-y-3">
-                    {getSaran().length > 0 ? (
-                      getSaran().map((saran, idx) => (
-                        <div key={idx} className="flex gap-3 text-sm text-slate-600 items-start">
-                          <div className="mt-1 flex-shrink-0">
-                            <ChevronRight size={14} className="text-indigo-400" />
-                          </div>
-                          <p dangerouslySetInnerHTML={{ __html: saran }} />
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Main Input & Analysis Section -->
+                <div class="lg:col-span-2 space-y-6">
+                    
+                    <!-- Editor Card -->
+                    <div class="glass-card rounded-3xl shadow-sm p-6 md:p-8">
+                        <div class="flex items-center justify-between mb-4">
+                            <label class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                <i class="far fa-file-alt text-indigo-500"></i>
+                                Masukkan Prompt Anda
+                            </label>
+                            <div id="stats" class="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+                                0 Karakter | 0 Kata
+                            </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-6 text-center">
-                        <Award className="text-yellow-400 mb-2" size={32} />
-                        <p className="text-sm text-slate-600 font-medium">Prompt Luar Biasa! Siap untuk di-generate.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+                        
+                        <textarea id="promptInput" 
+                            class="w-full h-72 p-5 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all resize-none text-slate-700 leading-relaxed text-lg"
+                            placeholder="Contoh: Bertindaklah sebagai pakar pemasaran. Tuliskan caption Instagram untuk produk kopi baru dengan nada santai dalam format poin-poin..."></textarea>
 
-          {/* Sidebar / Guide Section */}
-          <div className="space-y-6">
-            <div className="bg-indigo-600 rounded-2xl shadow-lg p-6 text-white">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <CheckCircle size={22} />
-                Checklist Kriteria
-              </h2>
-              <div className="space-y-4">
-                {criteria.map((item) => {
-                  const isFound = analysis?.details.find(d => d.id === item.id)?.found;
-                  return (
-                    <div key={item.id} className="flex items-start gap-3 group">
-                      <div className={`mt-0.5 p-1 rounded-full transition-colors ${isFound ? 'bg-green-400/20 text-green-300' : 'bg-white/10 text-white/40'}`}>
-                        {isFound ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
-                      </div>
-                      <div>
-                        <p className={`text-sm font-bold ${isFound ? 'text-white' : 'text-white/60'}`}>{item.label}</p>
-                        <p className="text-xs text-indigo-100/70 leading-relaxed mt-0.5">{item.desc}</p>
-                      </div>
+                        <div class="mt-6 flex flex-wrap gap-3">
+                            <button onclick="copyPrompt()" class="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold transition-all shadow-md active:scale-95">
+                                <i id="copyIcon" class="far fa-copy"></i>
+                                <span id="copyText">Salin Prompt</span>
+                            </button>
+                            <button onclick="resetPrompt()" class="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-sm font-semibold transition-all active:scale-95">
+                                <i class="fas fa-undo-alt"></i>
+                                Reset
+                            </button>
+                        </div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <!-- Results Dashboard (Hidden when empty) -->
+                    <div id="resultsArea" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 opacity-0 translate-y-4 transition-all duration-500">
+                        <!-- Score Card -->
+                        <div class="glass-card rounded-3xl shadow-sm p-8 flex flex-col items-center justify-center text-center">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Grade Analisis</span>
+                            <div id="gradeDisplay" class="text-9xl font-black mb-4">F</div>
+                            <div class="w-full bg-slate-100 h-3 rounded-full mt-4 overflow-hidden">
+                                <div id="scoreBar" class="bg-indigo-600 h-full w-0 transition-all duration-1000"></div>
+                            </div>
+                            <span id="scoreText" class="text-sm font-bold text-slate-500 mt-3">Quality Score: 0/100</span>
+                        </div>
+
+                        <!-- Suggestions Card -->
+                        <div class="glass-card rounded-3xl shadow-sm p-8">
+                            <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                <i class="far fa-lightbulb text-yellow-500"></i>
+                                Saran Perbaikan
+                            </h3>
+                            <div id="suggestionsList" class="space-y-4 h-48 overflow-y-auto custom-scrollbar pr-2">
+                                <!-- Suggestions injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar Guide -->
+                <div class="space-y-6">
+                    
+                    <!-- Checklist Card -->
+                    <div class="bg-indigo-600 rounded-3xl shadow-xl shadow-indigo-100 p-8 text-white">
+                        <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                            <i class="far fa-check-circle"></i>
+                            Checklist Kriteria
+                        </h2>
+                        <div id="checklistItems" class="space-y-5">
+                            <!-- Items injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Framework Card -->
+                    <div class="glass-card rounded-3xl shadow-sm p-8">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-info-circle text-indigo-500"></i>
+                            Formula RTF
+                        </h3>
+                        <div class="space-y-4 text-sm text-slate-600">
+                            <div class="p-4 bg-indigo-50 rounded-2xl border-l-4 border-indigo-500">
+                                <p class="font-mono text-xs font-bold text-indigo-600 mb-1">STRUKTUR TERBAIK</p>
+                                <p class="font-semibold text-indigo-900 text-base">Role - Task - Format</p>
+                            </div>
+                            <p class="leading-relaxed">Pastikan prompt Anda memiliki struktur yang logis agar AI tidak bingung:</p>
+                            <div class="text-[11px] bg-slate-900 text-indigo-300 p-4 rounded-xl font-mono leading-relaxed">
+                                [Peran] + [Tugas Spesifik] + [Konteks Audiens] + [Batasan/Constraint] + [Gaya Bahasa] + [Output]
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Info size={20} className="text-indigo-500" />
-                Formula Prompt Sempurna
-              </h3>
-              <div className="space-y-4 text-sm text-slate-600">
-                <div className="p-3 bg-slate-50 rounded-lg border-l-4 border-indigo-500">
-                  <p className="font-mono text-xs font-bold text-indigo-600 mb-1">FRAMEWORK RTF</p>
-                  <p><strong>R</strong>ole - <strong>T</strong>ask - <strong>F</strong>ormat</p>
-                </div>
-                <p>Gunakan rumus ini untuk hasil maksimal:</p>
-                <div className="text-xs bg-slate-900 text-slate-300 p-3 rounded-lg font-mono">
-                  [Sebagai Peran Apa] + [Lakukan Tugas Apa] + [Konteks/Audiens] + [Batasan Tertentu] + [Format Output]
-                </div>
-                <ul className="space-y-2 text-xs list-disc pl-4">
-                  <li>Hindari kalimat ambigu</li>
-                  <li>Berikan contoh jika memungkinkan</li>
-                  <li>Tentukan gaya bahasa (Tone)</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
+            <!-- Footer -->
+            <footer class="mt-16 text-center text-slate-400 text-sm border-t border-slate-200 pt-8 pb-10">
+                <p>&copy; 2025 PromptMaster Analytics. Dibuat untuk optimasi interaksi AI Generatif.</p>
+            </footer>
         </div>
-
-        {/* Footer */}
-        <footer className="mt-12 text-center text-slate-400 text-sm border-t border-slate-200 pt-8 pb-4">
-          <p>© 2025 PromptMaster Analytics. Dibuat untuk meningkatkan produktivitas AI Anda.</p>
-        </footer>
-      </div>
     </div>
-  );
-};
 
-export default App;
+    <script>
+        const promptInput = document.getElementById('promptInput');
+        const resultsArea = document.getElementById('resultsArea');
+        const gradeDisplay = document.getElementById('gradeDisplay');
+        const scoreBar = document.getElementById('scoreBar');
+        const scoreText = document.getElementById('scoreText');
+        const suggestionsList = document.getElementById('suggestionsList');
+        const checklistItems = document.getElementById('checklistItems');
+        const statsDisplay = document.getElementById('stats');
+
+        const criteria = [
+            { 
+                id: 'persona', 
+                label: 'Persona/Role', 
+                desc: 'Identitas AI (contoh: "Pakar SEO")',
+                keywords: ['sebagai', 'ahli', 'pakar', 'role', 'bertindak', 'peran', 'as a', 'expert', 'specialist']
+            },
+            { 
+                id: 'task', 
+                label: 'Tugas/Task', 
+                desc: 'Instruksi utama (contoh: "Tulis", "Buat")',
+                keywords: ['buat', 'tulis', 'ringkas', 'analisis', 'hitung', 'jelaskan', 'create', 'write', 'summarize', 'analyze', 'resep']
+            },
+            { 
+                id: 'context', 
+                label: 'Konteks', 
+                desc: 'Latar belakang atau target audiens',
+                keywords: ['untuk', 'latar belakang', 'konteks', 'situasi', 'audiens', 'target', 'context', 'background', 'audience']
+            },
+            { 
+                id: 'format', 
+                label: 'Format', 
+                desc: 'Struktur akhir (contoh: "Tabel", "JSON")',
+                keywords: ['tabel', 'list', 'poin', 'bullet', 'format', 'markdown', 'html', 'json', 'table', 'struktur']
+            },
+            { 
+                id: 'constraint', 
+                label: 'Constraint', 
+                desc: 'Batasan kata atau gaya bahasa',
+                keywords: ['jangan', 'hindari', 'maksimal', 'minimal', 'kata', 'gaya', 'nada', 'tone', 'avoid', 'limit', 'pendek', 'panjang']
+            }
+        ];
+
+        function analyze() {
+            const text = promptInput.value;
+            
+            if (!text.trim()) {
+                resultsArea.classList.add('hidden');
+                resultsArea.classList.remove('opacity-100', 'translate-y-0');
+                renderChecklist([]);
+                updateStats(0, 0);
+                return;
+            }
+
+            const lowerText = text.toLowerCase();
+            const results = criteria.map(c => ({
+                ...c,
+                found: c.keywords.some(k => lowerText.includes(k.toLowerCase()))
+            }));
+
+            const foundCount = results.filter(r => r.found).length;
+            const wordCount = text.trim().split(/\s+/).length;
+            
+            // Scoring
+            let score = (foundCount / criteria.length) * 80;
+            if (wordCount > 20) score += 10;
+            if (wordCount > 50) score += 10;
+            if (wordCount < 5) score -= 30;
+
+            score = Math.max(0, Math.min(100, score));
+
+            let grade = 'F';
+            let colorClass = 'grade-f';
+
+            if (score >= 90) { grade = 'S'; colorClass = 'grade-s'; }
+            else if (score >= 80) { grade = 'A'; colorClass = 'grade-a'; }
+            else if (score >= 65) { grade = 'B'; colorClass = 'grade-b'; }
+            else if (score >= 50) { grade = 'C'; colorClass = 'grade-c'; }
+            else if (score >= 35) { grade = 'D'; colorClass = 'grade-d'; }
+
+            // Update UI
+            resultsArea.classList.remove('hidden');
+            setTimeout(() => {
+                resultsArea.classList.add('opacity-100', 'translate-y-0');
+            }, 10);
+
+            gradeDisplay.textContent = grade;
+            gradeDisplay.className = `text-9xl font-black mb-4 transition-colors duration-500 ${colorClass}`;
+            scoreBar.style.width = `${score}%`;
+            scoreText.textContent = `Quality Score: ${Math.round(score)}/100`;
+
+            renderSuggestions(results);
+            renderChecklist(results);
+            updateStats(text.length, wordCount);
+        }
+
+        function renderSuggestions(results) {
+            const missing = results.filter(r => !r.found);
+            if (missing.length === 0) {
+                suggestionsList.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-6 text-center">
+                        <i class="fas fa-award text-yellow-400 text-4xl mb-3"></i>
+                        <p class="text-sm text-slate-600 font-bold">Prompt Sempurna!</p>
+                        <p class="text-xs text-slate-400">Siap untuk digunakan di ChatGPT/Gemini.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            suggestionsList.innerHTML = missing.map(m => `
+                <div class="flex gap-3 text-sm text-slate-600 items-start">
+                    <div class="mt-1 flex-shrink-0 text-indigo-400">
+                        <i class="fas fa-chevron-right text-[10px]"></i>
+                    </div>
+                    <p>Tambahkan elemen <strong>${m.label}</strong>. ${m.desc}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderChecklist(results) {
+            checklistItems.innerHTML = criteria.map(item => {
+                const foundObj = results.find(r => r.id === item.id);
+                const isFound = foundObj ? foundObj.found : false;
+                
+                return `
+                    <div class="flex items-start gap-4 transition-all duration-300 ${isFound ? 'opacity-100' : 'opacity-50'}">
+                        <div class="mt-1 flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full ${isFound ? 'bg-green-400 text-green-900' : 'bg-white/20 text-white/40'}">
+                            <i class="fas ${isFound ? 'fa-check' : 'fa-circle'} text-[10px]"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-white">${item.label}</p>
+                            <p class="text-[11px] text-indigo-100/70 leading-relaxed mt-0.5">${item.desc}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats(chars, words) {
+            statsDisplay.textContent = `${chars} Karakter | ${words} Kata`;
+        }
+
+        function copyPrompt() {
+            const el = document.createElement('textarea');
+            el.value = promptInput.value;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            const btnText = document.getElementById('copyText');
+            const btnIcon = document.getElementById('copyIcon');
+            
+            btnText.textContent = 'Tersalin!';
+            btnIcon.className = 'fas fa-check text-green-400';
+            
+            setTimeout(() => {
+                btnText.textContent = 'Salin Prompt';
+                btnIcon.className = 'far fa-copy';
+            }, 2000);
+        }
+
+        function resetPrompt() {
+            promptInput.value = '';
+            analyze();
+        }
+
+        // Initialize empty checklist
+        renderChecklist([]);
+
+        // Event Listeners
+        promptInput.addEventListener('input', analyze);
+
+    </script>
+</body>
+</html>
